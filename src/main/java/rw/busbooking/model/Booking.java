@@ -26,7 +26,7 @@ public class Booking {
 
     @ManyToOne
     @JoinColumn(name = "trip_id")
-    private TripService trip;
+    private Trip trip;
 
     private LocalDateTime bookingDate;
 
@@ -57,11 +57,11 @@ public class Booking {
         this.user = user;
     }
 
-    public TripService getTrip() {
+    public Trip getTrip() {
         return trip;
     }
 
-    public void setTrip(TripService trip) {
+    public void setTrip(Trip trip) {
         this.trip = trip;
     }
 

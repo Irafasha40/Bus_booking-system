@@ -28,11 +28,18 @@ public class BookingService {
     private final PassengerRepository passengerRepository;
 
     public BookingResponseDTO createBooking(Long userId, BookingRequestDTO dto) {
-        TripService trip = tripRepository.findById(dto.getTripId())
+        Trip trip = tripRepository.findById(dto.getTripId())
                 .orElseThrow(() -> new NoSuchElementException("TripService not found"));
 
+        if (trip.getDepartureTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Cannot book a trip that has already departed");
+        }
+
         for (Integer seat : dto.getSeatNumbers()) {
-            if (bookingRepository.existsByTrip_TripIdAndSeatNumbersContaining(trip.getTripId(), seat)) {
+            boolean seatTaken = bookingRepository
+                    .existsByTrip_TripIdAndSeatNumbersContainingAndBookingStatus(
+                            trip.getTripId(), seat, BookingStatus.CONFIRMED);
+            if (seatTaken) {
                 throw new IllegalStateException("Seat " + seat + " already booked");
             }
         }
@@ -69,11 +76,20 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NoSuchElementException("Booking not found"));
 
-        booking.setBookingStatus(BookingStatus.CANCELLED);
-        booking.getTrip().setAvailableSeats(booking.getTrip().getAvailableSeats() + booking.getSeatNumbers().size());
+        if (booking.getBookingStatus() == BookingStatus.CONFIRMED) {
+            booking.setBookingStatus(BookingStatus.CANCELLED);
+            Trip trip = booking.getTrip();
+            trip.setAvailableSeats(trip.getAvailableSeats() + booking.getSeatNumbers().size());
+            bookingRepository.save(booking);
+            tripRepository.save(trip);
+        }
+    }
 
-        bookingRepository.save(booking);
-        tripRepository.save(booking.getTrip());
+    public List<Integer> getBookedSeatNumbersForTrip(Long tripId) {
+        return bookingRepository.findByTrip_TripIdAndBookingStatus(tripId, BookingStatus.CONFIRMED)
+                .stream()
+                .flatMap(b -> b.getSeatNumbers().stream())
+                .collect(Collectors.toList());
     }
 
     public List<BookingResponseDTO> getUserBookings(Long userId) {
@@ -81,8 +97,13 @@ public class BookingService {
                 .stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 
+    public List<BookingResponseDTO> getAllBookings() {
+        return bookingRepository.findAll()
+                .stream().map(this::convertToResponse).collect(Collectors.toList());
+    }
+
     private BookingResponseDTO convertToResponse(Booking b) {
-        TripService trip = b.getTrip();
+        Trip trip = b.getTrip();
         TripSummaryDTO summary = new TripSummaryDTO(
                 trip.getOrigin(), trip.getDestination(), trip.getDepartureTime(), trip.getBusNumber());
 

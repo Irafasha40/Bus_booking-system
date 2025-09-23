@@ -37,9 +37,27 @@ public class TripController {
         return ResponseEntity.ok(tripService.findAllTrips());
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<TripResponseDTO>> getAllTripsIncludingDeparted() {
+        return ResponseEntity.ok(tripService.findAllTripsIncludingDeparted());
+    }
+
+    @GetMapping("/departed")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<TripResponseDTO>> getDepartedTrips() {
+        return ResponseEntity.ok(tripService.findDepartedTrips());
+    }
+
     @GetMapping("/{tripId}")
     public ResponseEntity<TripResponseDTO> getTripById(@PathVariable Long tripId) {
         return ResponseEntity.ok(tripService.findTripById(tripId));
+    }
+
+    @GetMapping("/admin/{tripId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TripResponseDTO> getTripByIdForAdmin(@PathVariable Long tripId) {
+        return ResponseEntity.ok(tripService.findTripByIdForAdmin(tripId));
     }
 }
 

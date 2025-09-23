@@ -42,11 +42,22 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getUserBookings(userId));
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
+        return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
     @DeleteMapping("/{bookingId}")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<?> cancelBooking(@PathVariable Long bookingId) {
         bookingService.cancelBooking(bookingId);
         return ResponseEntity.ok(Map.of("message", "Booking cancelled successfully"));
+    }
+
+    @GetMapping("/trip/{tripId}/booked-seats")
+    public ResponseEntity<List<Integer>> getBookedSeatsByTrip(@PathVariable Long tripId) {
+        return ResponseEntity.ok(bookingService.getBookedSeatNumbersForTrip(tripId));
     }
 }
 
